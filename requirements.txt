@@ -1,0 +1,4 @@
+flask==3.0.3
+textblob==0.18.0
+rake-nltk==1.0.6
+nltk==3.8.1
