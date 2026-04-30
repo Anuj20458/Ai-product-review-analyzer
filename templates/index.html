@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Product Review Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ── ORIGINAL CSS – completely unchanged ── */
+        :root {
+            --bg-1: #fff3db;
+            --bg-2: #fffaf3;
+            --bg-3: #eef6ff;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --card-border: rgba(255, 255, 255, 0.82);
+            --text-main: #202938;
+            --text-soft: #667085;
+            --text-muted: #8a94a6;
+            --accent: #ff9f1c;
+            --accent-deep: #f77f00;
+            --secondary: #2874f0;
+            --secondary-deep: #0f5bd8;
+            --surface-warm: #fff8ee;
+            --surface-cool: #f5f9ff;
+            --positive-bg: #e9fbef;
+            --positive-text: #17803d;
+            --negative-bg: #fff0f0;
+            --negative-text: #d92d20;
+            --mixed-bg: #fff4e8;
+            --mixed-text: #e46f11;
+            --chip-bg: #fff4df;
+            --chip-border: #ffd7a1;
+            --chip-text: #9a5800;
+            --input-border: #dbe4f0;
+            --shadow-lg: 0 30px 70px rgba(31, 41, 55, 0.14);
+            --shadow-md: 0 16px 36px rgba(15, 91, 216, 0.12);
+            --shadow-soft: 0 10px 24px rgba(255, 159, 28, 0.12);
+            --radius-xl: 32px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 18px;
+            font-family: "Poppins", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at top left, rgba(255, 193, 94, 0.28), transparent 28%),
+                radial-gradient(circle at top right, rgba(40, 116, 240, 0.18), transparent 32%),
+                radial-gradient(circle at bottom right, rgba(255, 159, 28, 0.2), transparent 24%),
+                linear-gradient(135deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+        }
+
+        .page-shell { width: 100%; max-width: 1120px; }
+
+        .dashboard-card {
+            position: relative;
+            overflow: hidden;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(16px);
+            padding: 36px;
+        }
+
+        .dashboard-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(130deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.06)),
+                radial-gradient(circle at 85% 10%, rgba(255, 159, 28, 0.08), transparent 22%);
+            pointer-events: none;
+        }
+
+        .content { position: relative; z-index: 1; }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .hero-copy { text-align: left; }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255, 159, 28, 0.14);
+            color: var(--accent-deep);
+            font-size: 0.84rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.2rem, 4.5vw, 4rem);
+            line-height: 1.05;
+        }
+
+        .subtitle {
+            margin: 16px 0 0;
+            max-width: 640px;
+            color: var(--text-soft);
+            font-size: 1.02rem;
+            line-height: 1.7;
+        }
+
+        .hero-panel {
+            background: linear-gradient(145deg, #fff8ef, #ffffff);
+            border: 1px solid #ffe3bb;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .panel-title {
+            margin: 0 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: #9a5800;
+        }
+
+        .rating-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .rating-score { font-size: 1.9rem; font-weight: 700; color: var(--text-main); }
+
+        .stars { letter-spacing: 0.08em; color: #ffb400; font-size: 1rem; }
+
+        .mini-note { margin: 0; color: var(--text-soft); font-size: 0.92rem; line-height: 1.6; }
+
+        .trust-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+        .trust-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid #e8edf5;
+            color: var(--text-main);
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        form { display: grid; gap: 20px; }
+
+        .input-card, .result-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .input-card {
+            background: linear-gradient(180deg, rgba(255, 249, 240, 0.95), rgba(255, 255, 255, 0.95));
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 14px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .section-text {
+            margin: 0 0 14px;
+            color: var(--text-soft);
+            line-height: 1.7;
+            font-size: 0.96rem;
+        }
+
+        .review-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .toolbar-badge {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid #ebeff5;
+            color: var(--text-soft);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            resize: vertical;
+            border: 1px solid var(--input-border);
+            border-radius: 20px;
+            padding: 20px 22px;
+            font: inherit;
+            font-size: 0.98rem;
+            line-height: 1.7;
+            color: var(--text-main);
+            background: linear-gradient(180deg, #ffffff, #fffdf8);
+            outline: none;
+            box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.03);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
+        }
+
+        textarea::placeholder { color: #98a2b3; }
+
+        textarea:focus {
+            border-color: rgba(247, 127, 0, 0.45);
+            box-shadow: 0 0 0 5px rgba(255, 159, 28, 0.15);
+            transform: translateY(-1px) scale(1.003);
+            background: #ffffff;
+        }
+
+        .actions { display: flex; justify-content: center; }
+
+        button {
+            border: 0;
+            border-radius: 16px;
+            padding: 16px 30px;
+            font: inherit;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #ffffff;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+            box-shadow: 0 16px 30px rgba(247, 127, 0, 0.28);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease, letter-spacing 0.25s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 34px rgba(247, 127, 0, 0.32);
+            filter: saturate(1.08) brightness(1.02);
+            letter-spacing: 0.01em;
+        }
+
+        button:active { transform: translateY(0); }
+
+        .results-wrap { margin-top: 10px; }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr;
+            gap: 20px;
+        }
+
+        .result-main, .result-side { display: grid; gap: 18px; }
+
+        .review-block {
+            background: linear-gradient(180deg, #ffffff, #fffaf4);
+            border: 1px solid #ebeef5;
+            border-radius: var(--radius-md);
+            padding: 18px;
+        }
+
+        .review-text { margin: 0; color: var(--text-main); line-height: 1.8; word-break: break-word; }
+
+        .review-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 8px 12px;
+            background: var(--surface-cool);
+            color: #315a9b;
+            font-size: 0.83rem;
+            font-weight: 600;
+        }
+
+        .sentiment-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .sentiment-positive { background: var(--positive-bg); color: var(--positive-text); }
+        .sentiment-negative { background: var(--negative-bg); color: var(--negative-text); }
+        .sentiment-mixed    { background: var(--mixed-bg);    color: var(--mixed-text); }
+
+        .keywords { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        .keyword-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: var(--chip-bg);
+            border: 1px solid var(--chip-border);
+            color: var(--chip-text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .keyword-tag:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(255, 159, 28, 0.16); }
+
+        .empty-keywords { margin: 0; color: var(--text-soft); }
+
+        .summary-card {
+            background: linear-gradient(145deg, #f7fbff, #ffffff);
+            border: 1px solid #dfeaf9;
+            border-radius: var(--radius-md);
+            padding: 18px;
+        }
+
+        .summary-title { margin: 0 0 12px; color: var(--secondary-deep); font-size: 0.98rem; font-weight: 700; }
+
+        .summary-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+
+        .summary-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: var(--text-soft);
+            line-height: 1.6;
+            font-size: 0.92rem;
+        }
+
+        .summary-item strong { color: var(--text-main); }
+
+        .sentiment-wrap { display: flex; flex-direction: column; gap: 12px; }
+
+        .bar-track { height: 10px; border-radius: 999px; background: #eef2f7; overflow: hidden; }
+
+        .bar-fill {
+            height: 100%;
+            width: 74%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--accent), #ffd166);
+        }
+
+        .stars { letter-spacing: 0.08em; color: #ffb400; font-size: 1.3rem; }
+
+        /* ── NEW FEATURE STYLES (additive only) ── */
+
+        /* Confidence badge */
+        .confidence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: #eef6ff;
+            border: 1px solid #c3dafd;
+            color: var(--secondary-deep);
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        /* Review quality badge */
+        .quality-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+        .quality-high   { background: #e9fbef; color: #17803d; border: 1px solid #a7f3c2; }
+        .quality-medium { background: #fff4e8; color: #e46f11; border: 1px solid #fdc97a; }
+        .quality-low    { background: #fff0f0; color: #d92d20; border: 1px solid #fca5a5; }
+
+        /* Aspect sentiment table */
+        .aspect-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .aspect-cell {
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .aspect-name  { font-size: 0.78rem; font-weight: 700; text-transform: capitalize; opacity: 0.75; }
+        .aspect-label { font-size: 0.88rem; }
+
+        .aspect-pos { background: var(--positive-bg); color: var(--positive-text); border: 1px solid #a7f3c2; }
+        .aspect-neg { background: var(--negative-bg); color: var(--negative-text); border: 1px solid #fca5a5; }
+        .aspect-neu { background: #f0f4ff; color: #315a9b; border: 1px solid #c3dafd; }
+
+        /* Suggestions */
+        .suggestion-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: #fff8ee;
+            border: 1px solid #ffd7a1;
+            color: #7a4500;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        /* Top-word chips */
+        .freq-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: #f0f4ff;
+            border: 1px solid #c3dafd;
+            color: var(--secondary-deep);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .freq-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--secondary-deep);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        /* CSV upload section */
+        .csv-upload-card {
+            background: linear-gradient(180deg, rgba(240,247,255,0.95), rgba(255,255,255,0.95));
+            border: 1px dashed #93c5fd;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .csv-file-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            flex-wrap: wrap;
+        }
+
+        .csv-file-label input[type="file"] { display: none; }
+
+        .csv-file-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #2874f0, #0f5bd8);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.92rem;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 8px 20px rgba(40,116,240,0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .csv-file-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(40,116,240,0.3); }
+
+        #csv-filename {
+            color: var(--text-soft);
+            font-size: 0.88rem;
+            font-style: italic;
+        }
+
+        /* CSV result panels */
+        .csv-result-card {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(226,232,240,0.95);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            margin-top: 10px;
+        }
+
+        .csv-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .csv-stat-cell {
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .csv-stat-num  { font-size: 2rem; font-weight: 700; }
+        .csv-stat-label { font-size: 0.8rem; font-weight: 600; margin-top: 4px; opacity: 0.75; }
+
+        .stat-total    { background: #f0f4ff; color: var(--secondary-deep); }
+        .stat-positive { background: var(--positive-bg); color: var(--positive-text); }
+        .stat-negative { background: var(--negative-bg); color: var(--negative-text); }
+        .stat-neutral  { background: #f5f5f5; color: #555; }
+        .stat-mixed    { background: var(--mixed-bg); color: var(--mixed-text); }
+
+        .csv-summary-box {
+            margin-top: 16px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            background: linear-gradient(145deg, #f7fbff, #fff);
+            border: 1px solid #dfeaf9;
+            color: var(--text-soft);
+            font-size: 0.94rem;
+            line-height: 1.7;
+        }
+
+        .csv-chart-wrap { margin-top: 20px; }
+
+        @media (max-width: 768px) {
+            body { padding: 20px 14px; }
+            .dashboard-card { padding: 22px 16px; border-radius: 24px; }
+            .hero { grid-template-columns: 1fr; }
+            .hero-copy { text-align: center; }
+            .subtitle { margin-left: auto; margin-right: auto; }
+            .input-card, .result-card { padding: 18px; }
+            .result-grid { grid-template-columns: 1fr; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-shell">
+        <section class="dashboard-card">
+            <div class="content">
+
+                <!-- ── ORIGINAL HERO (unchanged) ── -->
+                <header class="hero">
+                    <div class="hero-copy">
+                        <div class="hero-badge">&#128640; Smart Review Commerce UI</div>
+                        <h1>AI Product Review Analyzer</h1>
+                        <p class="subtitle">
+                            Explore customer feedback in a richer marketplace-style dashboard with review highlights,
+                            sentiment signals, and keyword-driven insights.
+                        </p>
+                        <div class="trust-list">
+                            <span class="trust-pill">&#9989; Verified-style layout</span>
+                            <span class="trust-pill">&#11088; Review-focused design</span>
+                            <span class="trust-pill">&#128269; Quick keyword scan</span>
+                        </div>
+                    </div>
+                    <div class="hero-panel">
+                        <p class="panel-title">&#128717; Shopper Snapshot</p>
+                        {% if result %}
+                        <div class="rating-row">
+                            <span class="rating-score">{{ result.rating }}.0</span>
+                            <span class="stars">
+                                {% for i in range(result.rating) %}&#9733;{% endfor %}
+                                {% for i in range(5 - result.rating) %}&#9734;{% endfor %}
+                            </span>
+                            <span class="toolbar-badge">AI Predicted Rating</span>
+                        </div>
+                        {% else %}
+                        <div class="rating-row">
+                            <span class="rating-score">0.0</span>
+                            <span class="stars">&#9734;&#9734;&#9734;&#9734;&#9734;</span>
+                            <span class="toolbar-badge">Waiting for input</span>
+                        </div>
+                        {% endif %}
+                        <p class="mini-note">
+                            Designed to feel more lively and product-review centric, so the page reads like a polished
+                            customer feedback dashboard instead of a plain form.
+                        </p>
+                    </div>
+                </header>
+
+                <!-- ── ORIGINAL SINGLE-REVIEW FORM (unchanged textarea + button) ── -->
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="input-card">
+                        <div class="review-toolbar">
+                            <h2 class="section-title">&#128221; Review Input</h2>
+                            <div class="toolbar-badges">
+                                <span class="toolbar-badge">&#128483; Customer opinion</span>
+                                <span class="toolbar-badge">&#9203; Fast analysis</span>
+                                <span class="toolbar-badge">&#128230; Product feedback</span>
+                            </div>
+                        </div>
+                        <p class="section-text">Paste a product review below to analyze tone, discover key phrases, and
+                            present it in a more engaging customer-review style interface.</p>
+
+                        {% if error %}
+                        <div style="color: red; margin-bottom: 10px; font-weight: 600;">{{ error }}</div>
+                        {% endif %}
+
+                        <textarea name="review"
+                            placeholder="Enter your review here...">{{ result.review if result else '' }}</textarea>
+                    </div>
+
+                    <!-- ── NEW FEATURE 6: CSV Upload (added inside same form) ── -->
+                    <div class="csv-upload-card">
+                        <h2 class="section-title">&#128196; Bulk CSV Analysis</h2>
+                        <p class="section-text">Upload a CSV file containing product reviews for batch sentiment
+                            analysis. The file should have a column named <code>reviews.text</code>,
+                            <code>review</code>, or <code>text</code>.</p>
+                        <label class="csv-file-label">
+                            <input type="file" name="csv_file" id="csv_file" accept=".csv"
+                                   onchange="document.getElementById('csv-filename').textContent = this.files[0]?.name || 'No file chosen'">
+                            <span class="csv-file-btn">&#128196; Choose CSV File</span>
+                            <span id="csv-filename">No file chosen</span>
+                        </label>
+                        <div class="actions" style="margin-top:16px;">
+                            <button type="submit">&#128269; Analyze Review &nbsp;|&nbsp; &#128196; Upload CSV</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- ── NEW FEATURE 6/7/8: CSV Results ── -->
+                {% if csv_result %}
+                <div class="csv-result-card">
+                    <h2 class="section-title">&#128202; Dataset Analysis — {{ csv_result.total }} Reviews</h2>
+
+                    <div class="csv-stats-grid">
+                        <div class="csv-stat-cell stat-total">
+                            <div class="csv-stat-num">{{ csv_result.total }}</div>
+                            <div class="csv-stat-label">Total</div>
+                        </div>
+                        <div class="csv-stat-cell stat-positive">
+                            <div class="csv-stat-num">{{ csv_result.counts.Positive }}</div>
+                            <div class="csv-stat-label">Positive 😊</div>
+                        </div>
+                        <div class="csv-stat-cell stat-negative">
+                            <div class="csv-stat-num">{{ csv_result.counts.Negative }}</div>
+                            <div class="csv-stat-label">Negative 😡</div>
+                        </div>
+                        <div class="csv-stat-cell stat-neutral">
+                            <div class="csv-stat-num">{{ csv_result.counts.Neutral }}</div>
+                            <div class="csv-stat-label">Neutral 😐</div>
+                        </div>
+                        <div class="csv-stat-cell stat-mixed">
+                            <div class="csv-stat-num">{{ csv_result.counts.Mixed }}</div>
+                            <div class="csv-stat-label">Mixed ⚖️</div>
+                        </div>
+                    </div>
+
+                    <!-- NEW FEATURE 8: Summary Generator -->
+                    <div class="csv-summary-box">
+                        &#128161; <strong>AI Summary:</strong> {{ csv_result.summary }}
+                    </div>
+
+                    <!-- NEW FEATURE 7: Dataset Pie Chart -->
+                    <div class="csv-chart-wrap">
+                        <h3 class="section-title" style="margin-bottom:10px;">&#129374; Sentiment Distribution</h3>
+                        <canvas id="csvChart" style="max-height:280px;"></canvas>
+                    </div>
+
+                    {% if csv_result.top_words %}
+                    <div style="margin-top:20px;">
+                        <h3 class="section-title">&#128200; Top Keywords in Dataset</h3>
+                        <div class="keywords">
+                            {% for word, count in csv_result.top_words %}
+                            <span class="freq-chip">
+                                {{ word }} <span class="freq-badge">{{ count }}</span>
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- ── ORIGINAL SINGLE-REVIEW RESULTS (structure unchanged) ── -->
+                {% if result %}
+                {% set sentiment_text = result.sentiment|lower %}
+                {% set sentiment_class = 'sentiment-mixed' %}
+                {% if 'positive' in sentiment_text %}
+                {% set sentiment_class = 'sentiment-positive' %}
+                {% elif 'negative' in sentiment_text %}
+                {% set sentiment_class = 'sentiment-negative' %}
+                {% endif %}
+
+                <div class="results-wrap">
+                    <div class="result-card">
+                        <h2 class="section-title">&#128202; Analysis Result</h2>
+                        <div class="result-grid">
+
+                            <!-- LEFT COLUMN -->
+                            <div class="result-main">
+                                <h3 class="section-title">&#128172; Review</h3>
+                                <div class="review-block">
+                                    <div class="review-meta">
+                                        <span class="meta-pill">&#10004; Verified-style customer review</span>
+                                        <span class="meta-pill">&#128717; Product feedback</span>
+                                        <span class="meta-pill">&#11088; Shopper insight</span>
+                                    </div>
+                                    <p class="review-text">{{ result.review }}</p>
+
+                                    <!-- NEW FEATURE 4: Review Quality -->
+                                    {% set q = result.quality %}
+                                    {% if 'High' in q %}
+                                    <span class="quality-badge quality-high">&#128203; Quality: {{ q }}</span>
+                                    {% elif 'Medium' in q %}
+                                    <span class="quality-badge quality-medium">&#128203; Quality: {{ q }}</span>
+                                    {% else %}
+                                    <span class="quality-badge quality-low">&#128203; Quality: {{ q }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- NEW FEATURE 5: Keyword Frequency Insight -->
+                                {% if result.top_words %}
+                                <div class="review-block">
+                                    <h3 class="section-title">&#128200; Word Frequency Insight</h3>
+                                    <div class="keywords">
+                                        {% for word, count in result.top_words %}
+                                        <span class="freq-chip">
+                                            {{ word }} <span class="freq-badge">{{ count }}</span>
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- NEW FEATURE 2: Aspect-Based Sentiment -->
+                                {% if result.aspects %}
+                                <div class="review-block">
+                                    <h3 class="section-title">&#127919; Aspect Sentiment</h3>
+                                    <div class="aspect-grid">
+                                        {% for aspect, info in result.aspects.items() %}
+                                        {% if 'Positive' in info.label %}
+                                        <div class="aspect-cell aspect-pos">
+                                        {% elif 'Negative' in info.label %}
+                                        <div class="aspect-cell aspect-neg">
+                                        {% else %}
+                                        <div class="aspect-cell aspect-neu">
+                                        {% endif %}
+                                            <span class="aspect-name">{{ aspect }}</span>
+                                            <span class="aspect-label">{{ info.label }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- NEW FEATURE 3: Recommendation Engine -->
+                                {% if result.suggestions %}
+                                <div class="review-block">
+                                    <h3 class="section-title">&#128161; Suggestions</h3>
+                                    <ul class="suggestion-list">
+                                        {% for s in result.suggestions %}
+                                        <li class="suggestion-item">&#128312; {{ s }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+
+                                <div class="summary-card">
+                                    <h3 class="summary-title">&#128161; Review Highlights</h3>
+                                    <ul class="summary-list">
+                                        <li class="summary-item"><span>&#10148;</span><span><strong>Review
+                                                    captured:</strong> Your original customer text is displayed exactly
+                                                as submitted.</span></li>
+                                        <li class="summary-item"><span>&#10148;</span><span><strong>Sentiment
+                                                    mapped:</strong> The interface emphasizes the review mood with bold
+                                                color cues.</span></li>
+                                        <li class="summary-item"><span>&#10148;</span><span><strong>Keywords
+                                                    surfaced:</strong> Important phrases appear like quick-scan product
+                                                tags.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN -->
+                            <div class="result-side">
+                                <div class="review-block">
+                                    <h3 class="section-title">&#127919; Sentiment</h3>
+                                    <div class="sentiment-wrap">
+                                        <span class="sentiment-chip {{ sentiment_class }}">{{ result.sentiment }}</span>
+
+                                        <!-- NEW FEATURE 1: Confidence Score -->
+                                        <span class="confidence-badge">
+                                            &#127919; Confidence: {{ result.confidence }}%
+                                        </span>
+
+                                        <div class="bar-track">
+                                            <div class="bar-fill"
+                                                 style="width: {{ result.confidence }}%;
+                                                        background: {% if 'positive' in sentiment_text %}linear-gradient(90deg,#34d399,#10b981){% elif 'negative' in sentiment_text %}linear-gradient(90deg,#f87171,#ef4444){% else %}linear-gradient(90deg,var(--accent),#ffd166){% endif %};">
+                                            </div>
+                                        </div>
+                                        <p class="mini-note">Clear color coding makes the sentiment feel more immediate,
+                                            similar to rating summaries on shopping platforms.</p>
+                                    </div>
+                                </div>
+
+                                <div class="review-block">
+                                    <h3 class="section-title">📊 Sentiment Chart</h3>
+                                    <canvas id="myChart" style="height:200px;"></canvas>
+                                </div>
+
+                                <div class="review-block">
+                                    <h3 class="section-title">&#127991;&#65039; Keywords</h3>
+                                    {% if result.keywords %}
+                                    <div class="keywords">
+                                        {% for keyword in result.keywords %}
+                                        <span class="keyword-tag">&#128204; {{ keyword }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% else %}
+                                    <p class="empty-keywords">No keyword phrases were extracted for this review.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </section>
+    </main>
+</body>
+
+<script>
+    /* ── ORIGINAL single-review bar chart (unchanged) ── */
+    {% if result %}
+    const data = {
+        labels: ["Positive", "Negative", "Neutral", "Mixed"],
+        datasets: [{
+            label: "Sentiment",
+            data: [
+                {{ result.counts['Positive'] }},
+                {{ result.counts['Negative'] }},
+                {{ result.counts['Neutral'] }},
+                {{ result.counts['Mixed'] }}
+            ],
+            backgroundColor: ["#34d399", "#f87171", "#94a3b8", "#fb923c"],
+            borderRadius: 8,
+        }]
+    };
+    new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: data,
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+    {% endif %}
+
+    /* ── NEW FEATURE 7: CSV Dataset Pie Chart ── */
+    {% if csv_result %}
+    const csvData = {
+        labels: ["Positive 😊", "Negative 😡", "Neutral 😐", "Mixed ⚖️"],
+        datasets: [{
+            data: [
+                {{ csv_result.counts['Positive'] }},
+                {{ csv_result.counts['Negative'] }},
+                {{ csv_result.counts['Neutral'] }},
+                {{ csv_result.counts['Mixed'] }}
+            ],
+            backgroundColor: ["#34d399", "#f87171", "#94a3b8", "#fb923c"],
+            borderWidth: 2,
+            borderColor: "#ffffff",
+            hoverOffset: 14,
+        }]
+    };
+    new Chart(document.getElementById('csvChart'), {
+        type: 'pie',
+        data: csvData,
+        options: {
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 16, font: { family: 'Poppins', size: 13 } } }
+            }
+        }
+    });
+
+    /* Show the filename when selected */
+    document.getElementById('csv_file').addEventListener('change', function () {
+        document.getElementById('csv-filename').textContent = this.files[0]?.name || 'No file chosen';
+    });
+    {% endif %}
+</script>
+
+</html>
